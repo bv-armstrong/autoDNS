@@ -1,41 +1,10 @@
 import os
-import logging
+import sys
 from dotenv import load_dotenv
 from cloudflare import Cloudflare
 
-ENV_API_KEY = 'CLOUDFLARE_API_TOKEN'
-ENV_ZONE_ID_KEY = 'CLOUDFLARE_ZONE_ID'
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(
-        prog='AutoDNS'
-        description='TODO'
-    )
-
-    parser.add_argument('record', help='The name of the DNS record.')
-    parser.add_argument('address')
-
-    zone_group = parser.add_mutually_exclusive_group(required=False)
-    zone_group.add_argument(
-        '-Z', '--zone',
-        help='Cloudflare zone name (example.com).')
-    zone_group.add_argument(
-        '-z', '--zone-id', 
-        help='Either the Cloudflare zone name (example.com) or the zone id.')
-    
-    parser.add_argument(
-        '-e', '--env',
-        default='.env',
-        help='Environment file.'
-    )
-
-    parser.add_argument(
-        '-c', '--cache-env',
-        action='store_true',
-        help='TODO'
-    )
-
-    return parser.parse_args()
+ENV_API_TOKEN_KEY = 'CLOUDFLARE_API_TOKEN'
+ENV_CF_ZONE_KEY = 'CLOUDFLARE_ZONE'
 
 def get_cf_zone(zone_name: str) -> str:
     res = client.zones.list(name=zone_name)
@@ -43,15 +12,19 @@ def get_cf_zone(zone_name: str) -> str:
         raise Exception("Unable to find Zone")
     return res.result[0].id
 
-def update_DNS_record(zone_id: str, name: str, record_type: str | None = None, new_value: str):
+def update_DNS_record(zone_id: str, name: str, new_value: str, record_type: str | None = None):
+    print(f'\nUpdating record {name} => {new_value}')
     list_res = client.dns.records.list(
         zone_id=zone_id,
         name=name,
         type=record_type
     )
 
+    # TODO: create new record if needed if list_res.
+
     for record in list_res.result:
         if record.content == new_value:
+            print(f'No change (id={record.id})')
             continue
         # TODO: pages
         edit_res = client.dns.records.edit(
@@ -59,31 +32,25 @@ def update_DNS_record(zone_id: str, name: str, record_type: str | None = None, n
             zone_id=zone_id,
             content=new_value
         )
-        if not edit_res.success:
-            logging.error(f'An error occurred while editing DNS record {name} ({record.id})')
-            logging.error(edit_res)
+        if edit_res.success:
+            print(f'Success (id={record.id})')
+        else:
+            print(f'An error occurred while editing DNS record {name} ({record.id}):\n{edit_res}', file=sys.stderr)
 
 
 if __name__ == '__main__':
-    opts = parse_arguments()
-
-    load_dotenv(opts.env)
+    load_dotenv()
 
     if not os.environ[ENV_API_TOKEN_KEY]:
         # TODO
         os.quit(1)
 
-    client = Cloudflare(api_token=os.environ[ENV_API_KEY])
-    if opts.zone_id:
-        os.environ[ENV_ZONE_ID_KEY] = opts.zone_id
-    elif opts.zone:
-        os.environ[ENV_ZONE_ID_KEY] = get_cf_zone(opts.zone)
-    
-    # if not os.environ[ENV_ZONE_ID_KEY]:
+    client = Cloudflare(api_token=os.environ[ENV_API_TOKEN_KEY])
+    cf_zone = get_cf_zone(os.environ[ENV_CF_ZONE_KEY])
 
-
-
-    # if opts.cache:
+    for line in sys.stdin:
+        name, address = line.split()
+        update_DNS_record(cf_zone, name, address)
         
 
 # print(get_cf_zone('bv-armstrong.dev'))
