@@ -1,9 +1,8 @@
 import argparse
 import os
-import sys
 import json
 from dotenv import load_dotenv
-from helper_functions import print_error
+from util import print_error
 
 
 
@@ -72,8 +71,25 @@ class CacheEntry:
 
 
 class DnsManager:
+    '''
+    Generic class for interacting with an Application API to manage DNS records.
+    The idea is to allow further customization for different DNS managers, which
+    can be loaded only when needed.
+    '''
 
     def remap_records(self, old_value: str, new_value: str) -> None:
+        '''
+        Default implementation for DNS Manager to remap records.
+        Calls a function load_dns_manager, which loads the DNS Manager
+        according to the Environment and reassigns the global dns_manager.
+        Finally, it calls the remap_records function on the new dns_manager.
+        
+        :param self: Description
+        :param old_value: The old IP address, used to look up records to change
+        :type old_value: str
+        :param new_value: The new IP address to set the DNS records to point to
+        :type new_value: str
+        '''
         load_dns_manager()
         dns_manager.remap_records(old_value, new_value)
 
@@ -134,15 +150,21 @@ def load_ip_mappings() -> None:
 
 
 def load_dns_manager() -> None:
-    # TODO: Support other managers?
+    '''
+    Loads a DNS manager according to environment settings.
+    Sets the global dns_manager variable to point to this new manager.
+    '''
     global dns_manager
 
-    from cf import CloudfareDNSManager
+    # TODO: Support other managers?
+    from util.cf import CloudfareDNSManager
     
     if not os.environ[ENV_API_TOKEN_KEY]:
         raise RuntimeError(f'{ENV_API_TOKEN_KEY} evironment variable not set')
         
     dns_manager = CloudfareDNSManager(os.environ[ENV_API_TOKEN_KEY], os.environ[ENV_CF_ZONE_KEY])
+
+    # Point the remap_records interface method to refer to the CloudfareDNSManager's update_DNS_records
     dns_manager.remap_records = dns_manager.update_DNS_records
 
 
@@ -150,6 +172,14 @@ def load_dns_manager() -> None:
 ### FUNCTIONS ###
 
 def add_mapping(network_name: str, name: str | None = None) -> None:
+    '''
+    Adds a new network mapping to the cache.
+    
+    :param network_name: The name of the network, associated with an IP Adress in the ip_mapping dictionary
+    :type network_name: str
+    :param name: A name associated with this entry, for utility purposes only. Defaults to network_name.
+    :type name: str | None
+    '''
     if name == None:
         name = network_name
     
@@ -195,15 +225,12 @@ def autoDNS() -> None:
 
 ### MAIN ###
 
-def run_add_mapping(args):
-    add_mapping(args[CacheEntry.NETWORK_KEY], name=args[CacheEntry.NAME_KEY])
-
-
-def run_autoDNS(args=None):
-    autoDNS()
-
-
 def parse_args():
+    '''
+    Reads Command Line Arguments
+
+    TODO: Add help documentation
+    '''
     parser = argparse.ArgumentParser(
         # prog='Auto DNS'
     )
@@ -212,25 +239,30 @@ def parse_args():
     add_parser = sub.add_parser('add')
     add_parser.add_argument(CacheEntry.NETWORK_KEY)
     add_parser.add_argument(CacheEntry.NAME_KEY, nargs='?', default=None)
-    add_parser.set_defaults(func=run_add_mapping)
+    add_parser.set_defaults(func=lambda args: add_mapping(args[CacheEntry.NETWORK_KEY], name=args[CacheEntry.NAME_KEY]))
 
     run_parser = sub.add_parser('run')
-    run_parser.set_defaults(func=run_autoDNS)
+    run_parser.set_defaults(func=lambda args: autoDNS())
 
     return parser.parse_args()
 
 
 if __name__ == '__main__':
+    # Read command line arguments
     args = parse_args()
     print(args)
 
+    # Load environment variables
     load_dotenv()
 
+    # Load cache (from previous run) and new IP Mappings
     load_cache()
     load_ip_mappings()
 
+    # Run program specified by command
     args.func(vars(args))
 
+    # Update cache
     write_cache()
 
         

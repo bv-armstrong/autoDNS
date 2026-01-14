@@ -1,5 +1,5 @@
 from cloudflare import Cloudflare
-from helper_functions import print_error
+from util import print_error
 
 
 class CloudfareDNSManager:
@@ -13,6 +13,8 @@ class CloudfareDNSManager:
         
         :param api_token: API Token used to access CloudFlare
         :type api_token: str
+        :param zone_name: The name of the Cloudflare Zone (e.g., example.com)
+        :type zone_name: str
         '''
         self.client = Cloudflare(api_token=api_token)
         self.set_zone(zone_name)
@@ -63,7 +65,12 @@ class CloudfareDNSManager:
             edit_res = self.client.dns.records.edit(
                 dns_record_id=record.id,
                 zone_id=self.zone_id,
-                content=new_value
+                content=new_value,
+                type=record.type,
+                name=record.name
             )
-            if not edit_res.res:
+            if not edit_res.success:
                 print_error(f'An error occurred while editing DNS record {record.name} ({record.id}), {old_value} => {new_value}:\n{edit_res}')
+            else:
+                print(edit_res)
+            print()
