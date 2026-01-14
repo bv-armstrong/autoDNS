@@ -2,3 +2,5 @@
 conf.d
 .env
 *.cache
+*.cache.json
+__pycache__
