@@ -1,0 +1,18 @@
+Namespace(func=<function parse_args.<locals>.<lambda> at 0x7b842e5efd80>)
+Reading IP Address Map from stdin:
+	lo = 127.0.0.1
+	wlp2s0 = 192.168.0.68
+	tailscale0 = 100.75.183.67
+
+Skipping tailscale (tailscale0 = 100.75.183.67 remains unchanged)
+Skipping local (wlp2s0 = 192.168.0.68 remains unchanged)
+Traceback (most recent call last):
+  File "/home/bv-armstrong/cloudflare/autoDNS/./autoDNS.py", line 261, in <module>
+    args.func(vars(args))
+  File "/home/bv-armstrong/cloudflare/autoDNS/./autoDNS.py", line 243, in <lambda>
+    run_parser.set_defaults(func=lambda args: autoDNS())
+                                              ^^^^^^^^^
+  File "/home/bv-armstrong/cloudflare/autoDNS/./autoDNS.py", line 208, in autoDNS
+    new_address = ip_map[entry.network_name]
+                  ~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'br-e6c9bd192fa2'

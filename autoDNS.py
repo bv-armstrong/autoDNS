@@ -1,9 +1,8 @@
 import argparse
 import os
+import sys
 import json
 from dotenv import load_dotenv
-from util import print_error
-
 
 
 ### CONSTANTS ###
@@ -117,7 +116,7 @@ def load_cache() -> None:
         with open(os.environ[ENV_CACHE_FILE_KEY]) as cache_file:
             cache = json.load(cache_file, object_hook=lambda d: CacheEntry(d[CacheEntry.NAME_KEY], d[CacheEntry.NETWORK_KEY], d[CacheEntry.ADDRESS_KEY] if CacheEntry.ADDRESS_KEY in d else ''))
     except OSError as e:
-        print_error(e.strerror)
+        print("Warning: Could not read cache file: {e.strerror}")
         cache = []
 
 
@@ -137,9 +136,8 @@ def load_ip_mappings() -> None:
     '''
     global ip_map
 
-    print("Reading IP Address Map:")
-    with open(os.environ[ENV_IP_MAP_FILE_KEY]) as file:
-        mappings = json.load(file, object_hook=NetworkMapEntry.from_dict)
+    print("Reading IP Address Map from stdin:")
+    mappings = json.load(sys.stdin, object_hook=NetworkMapEntry.from_dict)
 
     ip_map = {}
     for entry in mappings:
@@ -234,7 +232,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         # prog='Auto DNS'
     )
-    sub = parser.add_subparsers()
+    sub = parser.add_subparsers(required=True)
     
     add_parser = sub.add_parser('add')
     add_parser.add_argument(CacheEntry.NETWORK_KEY)

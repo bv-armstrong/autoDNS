@@ -1,0 +1,14 @@
+[
+  {
+    "network_name": "lo",
+    "address": "127.0.0.1"
+  },
+  {
+    "network_name": "wlp2s0",
+    "address": "192.168.0.68"
+  },
+  {
+    "network_name": "tailscale0",
+    "address": "100.75.183.67"
+  }
+]

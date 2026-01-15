@@ -1,5 +1,4 @@
 from cloudflare import Cloudflare
-from util import print_error
 
 
 class CloudfareDNSManager:
@@ -70,7 +69,7 @@ class CloudfareDNSManager:
                 name=record.name
             )
             if not edit_res.success:
-                print_error(f'An error occurred while editing DNS record {record.name} ({record.id}), {old_value} => {new_value}:\n{edit_res}')
+                print(f'Error: An error occurred while editing DNS record {record.name} ({record.id}), {old_value} => {new_value}:\n{edit_res}')
             else:
                 print(edit_res)
             print()
